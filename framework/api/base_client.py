@@ -5,7 +5,7 @@ from typing import Any, Self
 
 import requests
 
-from framework.config import settings
+from framework import config
 
 
 class BaseClient:
@@ -15,10 +15,12 @@ class BaseClient:
     """
 
     def __init__(
-        self, base_url: str = settings.base_url, timeout: float = settings.timeout
+        self, base_url: str | None = None, timeout: float | None = None
     ) -> None:
-        self.base_url = base_url.rstrip("/")
-        self.timeout = timeout
+        current = config.settings
+        url = base_url if base_url is not None else current.base_url
+        self.base_url = url.rstrip("/")
+        self.timeout = timeout if timeout is not None else current.timeout
         self.session = requests.Session()
         self.session.headers.update({"Accept": "application/json"})
 
