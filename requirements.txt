@@ -1,0 +1,6 @@
+pytest
+pytest-xdist
+requests
+pydantic
+faker
+ruff
