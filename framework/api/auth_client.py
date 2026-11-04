@@ -14,6 +14,7 @@ class AuthClient(BaseClient):
     """
 
     LOGIN_PATH = "/api/auth/login"
+    VALIDATE_PATH = "/api/auth/validate"
 
     def login(
         self, username: str | None = None, password: str | None = None
@@ -21,6 +22,10 @@ class AuthClient(BaseClient):
         """POST credentials. Arguments left as None are not sent at all."""
         body = LoginRequest(username=username, password=password)
         return self.post(self.LOGIN_PATH, json=body.model_dump(exclude_none=True))
+
+    def validate(self, token: str) -> requests.Response:
+        """POST a token to check whether the auth service still accepts it."""
+        return self.post(self.VALIDATE_PATH, json={"token": token})
 
     def login_with_raw_body(self, body: str) -> requests.Response:
         """POST a raw, possibly invalid, body with a JSON content type."""

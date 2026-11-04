@@ -8,8 +8,10 @@ from framework.models.room import RoomList
 
 @pytest.mark.api
 @pytest.mark.smoke
-def test_list_rooms_returns_200_and_at_least_one_room(room_client: RoomClient) -> None:
-    response = room_client.list_rooms()
+def test_list_rooms_returns_200_and_at_least_one_room(
+    proxy_room_client: RoomClient,
+) -> None:
+    response = proxy_room_client.list_rooms()
 
     assert response.status_code == 200
     room_list = RoomList.model_validate(response.json())

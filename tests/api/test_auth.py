@@ -23,6 +23,15 @@ def test_login_with_valid_admin_credentials_returns_200_and_token(
 
 @pytest.mark.api
 @pytest.mark.regression
+def test_validate_token_returns_200(auth_client: AuthClient, auth_token: str) -> None:
+    response = auth_client.validate(auth_token)
+
+    assert response.status_code == 200
+    assert response.json() == {"valid": True}
+
+
+@pytest.mark.api
+@pytest.mark.regression
 def test_login_with_wrong_password_returns_401(auth_client: AuthClient) -> None:
     response = auth_client.login(settings.admin_username, fake.password(length=12))
 
