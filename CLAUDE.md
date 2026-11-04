@@ -48,6 +48,10 @@ ci/                   Jenkinsfile and CI helpers
   cannot cover.
 - **Independent tests**: each test creates its own data (factories/fixtures) and cleans up after itself.
   No test depends on another test or on run order. Tests must be safe to run in parallel.
+- **Arrange – Act – Assert (AAA)**: every test has three parts, in this order. Arrange: set up
+  data and state, usually through fixtures. Act: one single call to the system under test.
+  Assert: check status code, schema and business rules. One Act per test. Separate the parts
+  with blank lines, and add "# Arrange / # Act / # Assert" comments only when the test is long.
 - **No hard-coded data or URLs**: URLs come from `framework/config.py`; data comes from factories.
 - **Assertions**: check status code, response schema (pydantic) and business rules. One behaviour per test.
 - **Markers**: every test has a layer marker (`api` or `ui`) and a suite marker (`smoke` or `regression`).
