@@ -47,7 +47,8 @@ def payload_with(**changes: Any) -> dict[str, Any]:
 def unknown_room_id(service_room_client: RoomClient) -> int:
     """An id far above every existing room, so it cannot exist now or soon."""
     response = service_room_client.list_rooms()
-    assert response.status_code == 200
+    if response.status_code != 200:
+        pytest.fail(f"listing rooms failed: {response.status_code}")
     room_ids = [room.roomid for room in RoomList.model_validate(response.json()).rooms]
     return max(room_ids, default=0) + 1_000_000
 
@@ -276,6 +277,88 @@ def test_delete_unknown_room_returns_404(
     response = service_room_client.delete_room(unknown_room_id, auth_token)
 
     assert response.status_code == 404
+
+
+# Known bug #4: the room service answers 500 instead of 404 when the room does not exist.
+
+
+@pytest.mark.regression
+@pytest.mark.issue("4")
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="RBP bug #4: GET of an unknown room returns 500 instead of 404",
+)
+def test_get_unknown_room_returns_404(
+    service_room_client: RoomClient, unknown_room_id: int
+) -> None:
+    response = service_room_client.get_room(unknown_room_id)
+
+    assert response.status_code == 404
+
+
+@pytest.mark.regression
+@pytest.mark.issue("4")
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="RBP bug #4: GET of a deleted room returns 500 instead of 404",
+)
+def test_get_deleted_room_returns_404(
+    service_room_client: RoomClient, auth_token: str, created_room: Room
+) -> None:
+    deletion = service_room_client.delete_room(created_room.roomid, auth_token)
+    if deletion.status_code != 202:
+        pytest.fail(f"room setup failed, delete returned {deletion.status_code}")
+
+    response = service_room_client.get_room(created_room.roomid)
+
+    assert response.status_code == 404
+
+
+# Known bug #2: through the UI proxy every /api/room/{id} request returns 500. These tests
+# need a room to change, so they create it through the room service and live in this file.
+# Tests that only read through the proxy are in test_rooms_proxy.py.
+
+
+@pytest.mark.regression
+@pytest.mark.issue("2")
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="RBP bug #2: proxy PUT /api/room/{id} returns 500",
+)
+def test_proxy_update_room_returns_200(
+    proxy_room_client: RoomClient,
+    auth_token: str,
+    created_room: Room,
+    room_cleanup: RoomCleanup,
+) -> None:
+    new_fields = RoomFactory.build()
+
+    response = proxy_room_client.update_room(
+        created_room.roomid, new_fields.model_dump(), auth_token
+    )
+    room_cleanup.track(response)
+
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
+
+
+@pytest.mark.regression
+@pytest.mark.issue("2")
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="RBP bug #2: proxy DELETE /api/room/{id} returns 500",
+)
+def test_proxy_delete_room_returns_200(
+    proxy_room_client: RoomClient, auth_token: str, created_room: Room
+) -> None:
+    response = proxy_room_client.delete_room(created_room.roomid, auth_token)
+
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
 
 
 CONCURRENT_CREATES = 20

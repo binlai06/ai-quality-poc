@@ -25,7 +25,8 @@ def auth_token(auth_client: AuthClient) -> str:
     """Admin token, logged in once per session (once per worker under xdist)."""
     settings = config.settings
     response = auth_client.login(settings.admin_username, settings.admin_password)
-    assert response.status_code == 200, f"admin login failed: {response.status_code}"
+    if response.status_code != 200:
+        pytest.fail(f"admin login failed: {response.status_code}")
     return LoginResponse.model_validate(response.json()).token
 
 
@@ -62,5 +63,6 @@ def created_room(
         RoomFactory.build().model_dump(), auth_token
     )
     room_cleanup.track(response)
-    assert response.status_code == 201, f"room setup failed: {response.status_code}"
+    if response.status_code != 201:
+        pytest.fail(f"room setup failed: {response.status_code}")
     return Room.model_validate(response.json())

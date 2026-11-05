@@ -35,10 +35,12 @@ class RoomCleanup:
         if not self._names:
             return
         listing = self._client.list_rooms()
-        assert listing.status_code == 200, f"cleanup list failed: {listing.status_code}"
+        if listing.status_code != 200:
+            raise RuntimeError(f"cleanup list failed: {listing.status_code}")
         for room in RoomList.model_validate(listing.json()).rooms:
             if room.roomName in self._names:
                 response = self._client.delete_room(room.roomid, self._token)
-                assert response.status_code in (202, 404), (
-                    f"cleanup of room {room.roomid} failed: {response.status_code}"
-                )
+                if response.status_code not in (202, 404):
+                    raise RuntimeError(
+                        f"cleanup of room {room.roomid} failed: {response.status_code}"
+                    )

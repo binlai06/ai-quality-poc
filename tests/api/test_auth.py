@@ -66,7 +66,11 @@ def test_login_with_missing_or_empty_credentials_returns_401(
 @pytest.mark.api
 @pytest.mark.regression
 @pytest.mark.issue("1")
-@pytest.mark.xfail(strict=True, reason="RBP bug #1: malformed login body returns 500")
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="RBP bug #1: malformed login body returns 500",
+)
 @pytest.mark.parametrize("body", ["", "not json"], ids=["no-body", "invalid-json"])
 def test_login_with_malformed_body_returns_400(
     auth_client: AuthClient, body: str
