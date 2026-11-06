@@ -4,3 +4,4 @@ requests
 pydantic
 faker
 ruff
+pytest-playwright

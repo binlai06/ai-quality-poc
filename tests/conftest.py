@@ -14,6 +14,15 @@ from framework.models.room import Room
 
 
 @pytest.fixture(scope="session")
+def base_url() -> str:
+    """Overrides pytest-playwright's base_url so UI tests use framework/config.py.
+
+    Read at call time, so RBP_BASE_URL set before the session starts is honoured.
+    """
+    return config.settings.base_url
+
+
+@pytest.fixture(scope="session")
 def auth_client() -> Iterator[AuthClient]:
     """One AuthClient per test session, closed at the end."""
     with AuthClient() as client:
