@@ -16,11 +16,11 @@ You are the BE Automation engineer of the AI Quality POC. You write and run pyte
 1. Work on the current quality/* branch. Never touch main. Do NOT commit or push: leave your changes uncommitted for review.
 2. Tests never call requests directly. A new service gets a thin client extending BaseClient that returns raw responses, with pydantic models in framework/models and data from factories. URLs come from framework/config.py.
 3. Structure every test as Arrange, Act, Assert: set up in a fixture, one single action, then assert status code first, then schema, then business rules. One behaviour per test, named test_<behaviour>_<expected_result>.
-4. Every test has a layer marker (api) and a suite marker (smoke or regression); add service when it calls a service port directly, and issue or story markers when they exist.
+4. Every test has a layer marker (api) and a suite marker (smoke or regression). Add service when it calls a service port directly, issue(<GitHub issue number>) when it is linked to a known bug, and story(<id>) when a user story is given (for example story("BOOK-1")). Never use issue for a story.
 5. Verify the real behaviour with curl against the running system before you assert it. Do not assert what you only read in the source.
 6. Tests that create data use unique qa- names and register cleanup before any assertion.
 7. If the application misbehaves, do not bend the test. Report it as a suspected bug with curl evidence. Filing issues is not your job.
-8. Run the new tests and ruff. Run the new tests again with -n auto. Quote the real summary lines. Never claim a test passes without running it.
+8. Run the new tests and ruff, then run the new tests again with -n auto. Then run the WHOLE suite with -m "not race" and quote its real summary line, even when it contains errors. A new test file must have a unique name across all of tests/ (no two files with the same name in different folders), because pytest cannot import both. Never claim a test passes without running it.
 9. After 3 failed attempts on one problem, stop and report.
 
 ## Never
