@@ -4,7 +4,9 @@ import json
 
 import requests
 
+from framework.api.message_client import MessageClient
 from framework.api.room_client import RoomClient
+from framework.models.message import MessageList
 from framework.models.room import RoomList
 
 
@@ -43,4 +45,40 @@ class RoomCleanup:
                 if response.status_code not in (202, 404):
                     raise RuntimeError(
                         f"cleanup of room {room.roomid} failed: {response.status_code}"
+                    )
+
+
+class MessageCleanup:
+    """Deletes contact messages a UI test created, found by their unique subject.
+
+    The UI never shows the message id, so the test registers the subject it typed.
+    Teardown lists the messages, deletes those with a tracked subject and treats 404
+    (already gone) as fine. Any other failure raises RuntimeError("message cleanup ..."),
+    which no xfail(raises=AssertionError) can absorb, so it is never mistaken for a known bug.
+    """
+
+    def __init__(self, client: MessageClient, token: str) -> None:
+        self._client = client
+        self._token = token
+        self._subjects: set[str] = set()
+
+    def track(self, subject: str) -> None:
+        """Remember a subject to delete in teardown. Call right after submitting."""
+        self._subjects.add(subject)
+
+    def delete_all(self) -> None:
+        if not self._subjects:
+            return
+        listing = self._client.list_messages()
+        if listing.status_code != 200:
+            raise RuntimeError(
+                f"message cleanup: list failed with {listing.status_code}"
+            )
+        for message in MessageList.model_validate(listing.json()).messages:
+            if message.subject in self._subjects:
+                response = self._client.delete_message(message.id, self._token)
+                if response.status_code not in (202, 404):
+                    raise RuntimeError(
+                        f"message cleanup: delete of message {message.id} "
+                        f"failed with {response.status_code}"
                     )

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from playwright.sync_api import Locator, Page
 
 from framework.pages.base_page import BasePage
+from framework.pages.contact_form import ContactForm
 
 ROOM_LINK_PATTERN = re.compile(r"/reservation/(\d+)")
 PRICE_PATTERN = re.compile(r"£(\d+)")
@@ -29,6 +30,7 @@ class HomePage(BasePage):
         super().__init__(page)
         # CSS only: the room card is a plain <div> with no role, label or test id.
         self.room_cards: Locator = page.locator("#rooms .room-card")
+        self.contact_form = ContactForm(page)
 
     def open(self) -> None:
         self.goto(self.path)
