@@ -6,6 +6,7 @@ import pytest
 
 from framework import config
 from framework.api.auth_client import AuthClient
+from framework.api.booking_client import BookingClient
 from framework.api.message_client import MessageClient
 from framework.api.room_client import RoomClient
 from framework.cleanup import MessageCleanup, RoomCleanup
@@ -93,3 +94,10 @@ def message_cleanup(
     cleanup = MessageCleanup(message_client, auth_token)
     yield cleanup
     cleanup.delete_all()
+
+
+@pytest.fixture(scope="session")
+def booking_client() -> Iterator[BookingClient]:
+    """Booking service called directly."""
+    with BookingClient.direct() as client:
+        yield client
