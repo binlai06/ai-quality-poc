@@ -4,6 +4,7 @@ import json
 
 import requests
 
+from framework.api.booking_client import BookingClient
 from framework.api.message_client import MessageClient
 from framework.api.room_client import RoomClient
 from framework.models.message import MessageList
@@ -80,5 +81,63 @@ class MessageCleanup:
                 if response.status_code not in (202, 404):
                     raise RuntimeError(
                         f"message cleanup: delete of message {message.id} "
+                        f"failed with {response.status_code}"
+                    )
+
+
+class BookingCleanup:
+    """Deletes bookings a test created, then the "new booking" message each one triggered.
+
+    Rooms are not handled here: deleting a room does not delete its bookings, so the
+    test must use this cleanup together with the room fixture, which runs after it.
+    The booking id comes from a 201 response. The message is found by the guest name
+    sent in the request (the service stores it as "<firstname> <lastname>").
+    """
+
+    MESSAGE_SUBJECT = "You have a new booking!"
+
+    def __init__(
+        self, booking_client: BookingClient, message_client: MessageClient, token: str
+    ) -> None:
+        self._bookings = booking_client
+        self._messages = message_client
+        self._token = token
+        self._booking_ids: set[int] = set()
+        self._guest_names: set[str] = set()
+
+    def track(self, response: requests.Response) -> None:
+        """Remember the booking and guest behind this create response. Call it before asserting."""
+        body = response.request.body
+        if body:
+            guest = json.loads(body)
+            self._guest_names.add(f"{guest.get('firstname')} {guest.get('lastname')}")
+        if response.status_code == 201:
+            self._booking_ids.add(response.json()["bookingid"])
+
+    def delete_all(self) -> None:
+        """Delete tracked bookings, then their messages. A 404 means already gone."""
+        for booking_id in self._booking_ids:
+            response = self._bookings.delete_booking(booking_id, self._token)
+            if response.status_code not in (202, 404):
+                raise RuntimeError(
+                    f"booking cleanup: delete of booking {booking_id} "
+                    f"failed with {response.status_code}"
+                )
+        if not self._guest_names:
+            return
+        listing = self._messages.list_messages()
+        if listing.status_code != 200:
+            raise RuntimeError(
+                f"booking cleanup: message list failed with {listing.status_code}"
+            )
+        for message in MessageList.model_validate(listing.json()).messages:
+            if (
+                message.subject == self.MESSAGE_SUBJECT
+                and message.name in self._guest_names
+            ):
+                response = self._messages.delete_message(message.id, self._token)
+                if response.status_code not in (202, 404):
+                    raise RuntimeError(
+                        f"booking cleanup: delete of message {message.id} "
                         f"failed with {response.status_code}"
                     )
