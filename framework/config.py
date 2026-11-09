@@ -10,6 +10,7 @@ class Settings:
 
     base_url: str
     room_url: str
+    booking_url: str
     message_url: str
     timeout: float
     admin_username: str
@@ -21,6 +22,7 @@ def load_settings() -> Settings:
 
     RBP_BASE_URL: root URL of the RBP UI, which proxies every service under /api.
     RBP_ROOM_URL: room service called directly (not exposed on the backup environment).
+    RBP_BOOKING_URL: booking service called directly (not exposed on the backup environment).
     RBP_MESSAGE_URL: message service called directly (not exposed on the backup environment).
     RBP_TIMEOUT: request timeout in seconds.
     RBP_ADMIN_USERNAME / RBP_ADMIN_PASSWORD: admin login. Defaults are RBP's public demo values.
@@ -28,6 +30,7 @@ def load_settings() -> Settings:
     return Settings(
         base_url=os.getenv("RBP_BASE_URL", "http://localhost").rstrip("/"),
         room_url=os.getenv("RBP_ROOM_URL", "http://localhost:3001").rstrip("/"),
+        booking_url=os.getenv("RBP_BOOKING_URL", "http://localhost:3000").rstrip("/"),
         message_url=os.getenv("RBP_MESSAGE_URL", "http://localhost:3006").rstrip("/"),
         timeout=float(os.getenv("RBP_TIMEOUT", "10")),
         admin_username=os.getenv("RBP_ADMIN_USERNAME", "admin"),

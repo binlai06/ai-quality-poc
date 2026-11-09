@@ -6,3 +6,6 @@ __pycache__/
 .env
 reports/
 test-results/
+
+# Claude Code personal settings (local only)
+.claude/settings.local.json

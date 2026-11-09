@@ -6,9 +6,10 @@ import pytest
 
 from framework import config
 from framework.api.auth_client import AuthClient
+from framework.api.booking_client import BookingClient
 from framework.api.message_client import MessageClient
 from framework.api.room_client import RoomClient
-from framework.cleanup import MessageCleanup, RoomCleanup
+from framework.cleanup import BookingCleanup, MessageCleanup, RoomCleanup
 from framework.factories.room_factory import RoomFactory
 from framework.models.auth import LoginResponse
 from framework.models.room import Room
@@ -91,5 +92,25 @@ def message_cleanup(
 ) -> Iterator[MessageCleanup]:
     """Deletes every message whose subject a test registers with `track()`, after the test."""
     cleanup = MessageCleanup(message_client, auth_token)
+    yield cleanup
+    cleanup.delete_all()
+
+
+@pytest.fixture(scope="session")
+def booking_client() -> Iterator[BookingClient]:
+    """Booking service called directly."""
+    with BookingClient.direct() as client:
+        yield client
+
+
+@pytest.fixture
+def booking_cleanup(
+    booking_client: BookingClient,
+    message_client: MessageClient,
+    auth_token: str,
+    created_room: Room,
+) -> Iterator[BookingCleanup]:
+    """Deletes tracked bookings and their messages. Depends on `created_room` so it runs first."""
+    cleanup = BookingCleanup(booking_client, message_client, auth_token)
     yield cleanup
     cleanup.delete_all()
