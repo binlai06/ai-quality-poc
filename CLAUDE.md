@@ -55,7 +55,7 @@ ci/                   Jenkinsfile and CI helpers
 - **No hard-coded data or URLs**: URLs come from `framework/config.py`; data comes from factories.
 - **Assertions**: check status code, response schema (pydantic) and business rules. One behaviour per test.
 - **Markers**: every test has a layer marker (`api` or `ui`) and a suite marker (`smoke` or `regression`).
-  Link tests to their story or bug with `@pytest.mark.issue("<number>")` when one exists.
+  Link tests to a GitHub issue with @pytest.mark.issue("<number>") and to a user story with @pytest.mark.story("<id>").
 - **Naming**: `test_<behaviour>_<expected_result>`, e.g. `test_create_room_with_valid_data_returns_201`.
 - **Readability**: type hints, short functions, docstrings on public classes. No commented-out code.
 
@@ -69,8 +69,7 @@ ruff check . && ruff format .      # lint and format
 ~~~
 
 ## Working rules for agents
-1. **Propose, then act.** Present a short plan and wait for the user's approval before writing files,
-   committing, pushing or creating GitHub issues.
+1. **Propose, then act.** Tier 1 actions (writing files on a quality/* branch, running tests locally) need no approval in learning phase 1. Commits, pushes, pull requests and GitHub issues still need the user's approval. Tier 3 actions always need the user's explicit approval: merging, CI changes, changing assertions or xfail markers, editing agent definitions, CLAUDE.md or settings.
 2. Run the relevant tests after every change and report the real result. Never claim a test passes
    without running it.
 3. Keep changes small and focused, one concern per commit.

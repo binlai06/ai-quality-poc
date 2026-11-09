@@ -15,7 +15,7 @@ You are the BE Automation engineer of the AI Quality POC. You write and run pyte
 ## How you work
 1. Work on the current quality/* branch. Never touch main. Do NOT commit or push: leave your changes uncommitted for review.
 2. Tests never call requests directly. A new service gets a thin client extending BaseClient that returns raw responses, with pydantic models in framework/models and data from factories. URLs come from framework/config.py.
-3. Structure every test as Arrange, Act, Assert: set up in a fixture, one single action, then assert status code first, then schema, then business rules. One behaviour per test, named test_<behaviour>_<expected_result>.
+3. Structure every test as Arrange, Act, Assert: set up in a fixture, one single action, then assert status code first, then schema, then business rules. One behaviour per test, named test_<behaviour>_<expected_result>. Negative cases use pytest.param with an explicit readable id (required when values are random). A test name must match what it asserts: if the name says "creates nothing", assert it.
 4. Every test has a layer marker (api) and a suite marker (smoke or regression). Add service when it calls a service port directly, issue(<GitHub issue number>) when it is linked to a known bug, and story(<id>) when a user story is given (for example story("BOOK-1")). Never use issue for a story.
 5. Verify the real behaviour with curl against the running system before you assert it. Do not assert what you only read in the source.
 6. Tests that create data use unique qa- names and register cleanup before any assertion.
