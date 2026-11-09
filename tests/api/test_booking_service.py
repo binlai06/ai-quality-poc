@@ -93,3 +93,22 @@ def test_create_booking_with_malformed_email_returns_400_and_creates_nothing(
     summary = booking_client.get_summary(created_room.roomid)
     assert summary.status_code == 200
     assert BookingSummaryList.model_validate(summary.json()).bookings == []
+
+
+@pytest.mark.regression
+def test_create_booking_with_too_short_firstname_returns_400_and_creates_nothing(
+    booking_client: BookingClient,
+    booking_cleanup: BookingCleanup,
+    created_room: Room,
+) -> None:
+    payload = BookingFactory.build(created_room.roomid, firstname=fake.lexify("??"))
+
+    response = booking_client.create_booking(payload.model_dump(mode="json"))
+    booking_cleanup.track(response)
+
+    assert response.status_code == 400
+    error = ErrorResponse.model_validate(response.json())
+    assert error.fieldErrors == ["size must be between 3 and 18"]
+    summary = booking_client.get_summary(created_room.roomid)
+    assert summary.status_code == 200
+    assert BookingSummaryList.model_validate(summary.json()).bookings == []
