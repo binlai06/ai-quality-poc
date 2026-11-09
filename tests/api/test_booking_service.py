@@ -77,38 +77,51 @@ def test_create_booking_for_existing_room_returns_201_and_appears_in_room_summar
 
 
 @pytest.mark.regression
-def test_create_booking_with_malformed_email_returns_400_and_creates_nothing(
+@pytest.mark.parametrize(
+    ("overrides", "expected_errors"),
+    [
+        pytest.param(
+            {"email": "not-an-email"},
+            ["must be a well-formed email address"],
+            id="malformed-email",
+        ),
+        pytest.param(
+            {"firstname": fake.lexify("?" * 2)},
+            ["size must be between 3 and 18"],
+            id="firstname-too-short",
+        ),
+        pytest.param(
+            {"lastname": fake.lexify("?" * 2)},
+            ["size must be between 3 and 30"],
+            id="lastname-too-short",
+        ),
+        pytest.param(
+            {"firstname": fake.lexify("?" * 19)},
+            ["size must be between 3 and 18"],
+            id="firstname-too-long",
+        ),
+        pytest.param(
+            {"phone": fake.numerify("0" + "#" * 9)},
+            ["size must be between 11 and 21"],
+            id="phone-too-short",
+        ),
+    ],
+)
+def test_create_booking_with_invalid_field_returns_400_and_creates_nothing(
     booking_client: BookingClient,
     booking_cleanup: BookingCleanup,
     created_room: Room,
+    overrides: dict[str, str],
+    expected_errors: list[str],
 ) -> None:
-    payload = BookingFactory.build(created_room.roomid, email="not-an-email")
+    payload = BookingFactory.build(created_room.roomid, **overrides)
 
     response = booking_client.create_booking(payload.model_dump(mode="json"))
     booking_cleanup.track(response)
 
     assert response.status_code == 400
     error = ErrorResponse.model_validate(response.json())
-    assert error.fieldErrors == ["must be a well-formed email address"]
-    summary = booking_client.get_summary(created_room.roomid)
-    assert summary.status_code == 200
-    assert BookingSummaryList.model_validate(summary.json()).bookings == []
-
-
-@pytest.mark.regression
-def test_create_booking_with_too_short_firstname_returns_400_and_creates_nothing(
-    booking_client: BookingClient,
-    booking_cleanup: BookingCleanup,
-    created_room: Room,
-) -> None:
-    payload = BookingFactory.build(created_room.roomid, firstname=fake.lexify("??"))
-
-    response = booking_client.create_booking(payload.model_dump(mode="json"))
-    booking_cleanup.track(response)
-
-    assert response.status_code == 400
-    error = ErrorResponse.model_validate(response.json())
-    assert error.fieldErrors == ["size must be between 3 and 18"]
+    assert error.fieldErrors == expected_errors
     summary = booking_client.get_summary(created_room.roomid)
     assert summary.status_code == 200
     assert BookingSummaryList.model_validate(summary.json()).bookings == []
