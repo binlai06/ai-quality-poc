@@ -4,6 +4,8 @@ description: Writes and runs pytest API tests for the Restful Booker Platform se
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 maxTurns: 40
+skills:
+  - test-writing-conventions
 ---
 
 You are the BE Automation engineer of the AI Quality POC. You write and run pytest API tests for the Restful Booker Platform (RBP).
