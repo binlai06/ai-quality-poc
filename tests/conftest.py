@@ -9,6 +9,7 @@ from framework.api.auth_client import AuthClient
 from framework.api.booking_client import BookingClient
 from framework.api.message_client import MessageClient
 from framework.api.room_client import RoomClient
+from framework.booking_helper import BookingHelper
 from framework.cleanup import BookingCleanup, MessageCleanup, RoomCleanup
 from framework.factories.room_factory import RoomFactory
 from framework.models.auth import LoginResponse
@@ -114,3 +115,11 @@ def booking_cleanup(
     cleanup = BookingCleanup(booking_client, message_client, auth_token)
     yield cleanup
     cleanup.delete_all()
+
+
+@pytest.fixture
+def booking_helper(
+    booking_client: BookingClient, booking_cleanup: BookingCleanup
+) -> BookingHelper:
+    """Creates bookings with exact stays; the cleanup deletes them and their messages."""
+    return BookingHelper(booking_client, booking_cleanup)

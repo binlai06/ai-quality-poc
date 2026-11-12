@@ -2,8 +2,8 @@
 
 - Service: booking, port 3000 (`/booking`)
 - Produced by: test-design agent (read-only, from source). Reviewed by the Head of Quality.
-- Status: matrix approved for saving. Automation scope NOT yet chosen. Stage 1 (curl probe) pending.
-- Every expected result below is a **hypothesis** from reading the RBP source. Verify with curl before asserting.
+- Status: stage 1 (curl probe) done. Stage 2 (automation of confirmed rows) done on branch `quality/booking-tests`, not yet committed. See "Stage status" at the end.
+- The tables below are the original design. Their expected results were hypotheses from reading the RBP source; the "Stage status" section records what was verified and automated.
 
 ## Validation rules seen in source
 
@@ -141,3 +141,29 @@ Quality notes: T3 holds two behaviours (create and summary); T2 would pass even 
 - Overlap rows (C02-C08, A21-A24, B03) need a booking helper that sets exact dates and accepts two bookings in one room, with `booking_cleanup` tracking both. This is framework work for be-automation.
 - Any created booking also creates a message in the message service; the cleanup fixture handles this.
 - xfail pattern for confirmed bugs: `issue(<n>)` + `xfail(strict=True, raises=AssertionError)`. Changing xfail markers needs user approval.
+
+## Stage status
+
+### Stage 1: curl probe (done)
+Verified against the running app: C05 (booking 8-12 March, query 10-15 March: `/booking/unavailable` returns `[]` while create for 10-15 March returns 409), A27 500, B06 500, C11 500. Bugs filed as **#7** (C05-C08) and **#8** (A27, B06, C11).
+A05, A06, A10, B03, B04 were probed by be-automation at the start of stage 2 and matched the matrix (201, 201, 400, both stays listed, only `bookingDates` exposed).
+
+### Stage 2: automated rows (file `tests/api/test_booking_rules.py`)
+| Rows | Result | Notes |
+|---|---|---|
+| A19, A20 | pass | one parametrized test, 409 |
+| A21, A22, A23 | pass | duplicate and overlap 409; back-to-back 201 |
+| A05, A06 | pass | one parametrized test, firstname 3 and 18 chars, 201 |
+| A10 | pass | lastname 31 chars, 400 |
+| B03, B04 | pass | two stays listed; only `bookingDates` exposed |
+| C02 | pass (smoke) | asserts own room id only |
+| C05-C08 | xfail, issue **#7** | one parametrized test, 4 ids; strict xfail on the `/booking/unavailable` assertion |
+| A27, B06, C11 | xfail, issue **#8** | one test each, expected 400, today 500 |
+
+Framework added: `StayFactory` (exact dates from today + 400 days), `BookingHelper` (exact-stay booking, two bookings in one room, cleanup tracked), `booking_helper` fixture.
+
+Whole suite after stage 2: 60 passed, 16 xfailed (`pytest -n auto -m "not race"`).
+
+### Rows still GAP after stage 2
+A08, A09, A12-A18, A24-A26, A29, A30, A32, B05, B07, B08, C03, C04, C09, C10, C12. Open questions (A28, A31, C13) remain not asserted.
+Not yet covered by choice: the coverage summary table above is the stage 0 count and was not updated.
