@@ -12,3 +12,4 @@ test-results/
 
 # HoQ plans and reports are tracked
 !docs/reports/
+.playwright-mcp/
