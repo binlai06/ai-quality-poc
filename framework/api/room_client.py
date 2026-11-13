@@ -1,11 +1,16 @@
 """Client for the RBP room service, reachable directly or through the UI proxy."""
 
+from datetime import date
 from typing import Any, Self
 
 import requests
 
 from framework import config
 from framework.api.base_client import BaseClient
+
+
+def _as_text(value: date | str) -> str:
+    return value.isoformat() if isinstance(value, date) else value
 
 
 class RoomClient(BaseClient):
@@ -38,6 +43,15 @@ class RoomClient(BaseClient):
 
     def list_rooms(self) -> requests.Response:
         return self.get(self.collection_path)
+
+    def list_available_rooms(
+        self, checkin: date | str, checkout: date | str
+    ) -> requests.Response:
+        """Rooms listed for the given dates. Strings are sent as they are."""
+        return self.get(
+            self.collection_path,
+            params={"checkin": _as_text(checkin), "checkout": _as_text(checkout)},
+        )
 
     def get_room(self, room_id: int) -> requests.Response:
         return self.get(self._item_path(room_id))
