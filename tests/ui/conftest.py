@@ -5,6 +5,7 @@ from playwright.sync_api import Page
 
 from framework.pages.admin_login_page import AdminLoginPage
 from framework.pages.admin_rooms_page import AdminRoomsPage
+from framework.pages.availability_search import AvailabilitySearch
 from framework.pages.home_page import HomePage
 from framework.pages.reservation_page import ReservationPage
 
@@ -27,3 +28,8 @@ def admin_rooms_page(page: Page) -> AdminRoomsPage:
 @pytest.fixture
 def reservation_page(page: Page) -> ReservationPage:
     return ReservationPage(page)
+
+
+@pytest.fixture
+def availability_search(page: Page) -> AvailabilitySearch:
+    return AvailabilitySearch(page)
