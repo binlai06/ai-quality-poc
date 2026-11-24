@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push * main)",
+      "Bash(git push *:main)",
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push * -f)",
+      "Bash(gh pr merge *)",
+      "Bash(gh issue close *)",
+      "Bash(gh issue delete *)",
+      "Bash(gh repo delete *)",
+      "Edit(~/personal/restful-booker-platform/**)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(gh issue create *)",
+      "Bash(gh issue comment *)",
+      "Bash(gh issue edit *)",
+      "Edit(/.claude/agents/**)",
+      "Edit(/.claude/skills/**)",
+      "Edit(/.claude/settings.json)",
+      "Edit(/CLAUDE.md)",
+      "Edit(/.github/**)",
+      "Edit(/ci/**)",
+      "Edit(/Jenkinsfile)"
+    ],
+    "disableAutoMode": "disable",
+    "disableBypassPermissionsMode": "disable"
+  }
+}
