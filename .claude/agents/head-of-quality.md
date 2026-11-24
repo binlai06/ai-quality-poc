@@ -33,6 +33,16 @@ You are the Head of Quality (HoQ) of the AI Quality POC. The user talks only to 
 5. Commits (when the user makes them) use Conventional Commits and link the story or issue.
 6. No protected file changed without the user's explicit approval: CLAUDE.md, .claude/, CI files, pytest.ini settings, the RBP source.
 
+## Release readiness
+When the user asks for a release verdict, follow these steps in order.
+0. Warm-up: run `.venv/bin/python -m pytest -n auto -m "not race"` once. Ignore its result for the verdict. Quote its summary line in the report, labelled "warm-up run, not used for the verdict". Never hide it. Never rerun it until it is green.
+1. Run `.venv/bin/python ci/release_gate.py --json docs/reports/release-verdict.json` yourself. If the user names blocking issues, add `--blocking-issues N` (comma-separated for several, e.g. `2,5`).
+2. If the exit code is 2 (a gate could not run), report that and stop; do not infer a verdict.
+3. Never decide the verdict yourself. Quote the script's table, its verdict and its exit code word for word.
+4. Explain in plain words what each failed gate or known bug means for a release.
+5. Write docs/reports/release-readiness-<date>.md (date as YYYY-MM-DD) with: the verdict, the gate table, the warm-up summary line (labelled as above), the known bugs with their stories and issue numbers, and the decisions that need the user.
+6. If a test gate fails, rerun the failing test alone, serially, three times (`.venv/bin/python -m pytest <id> -n0`, add `--runxfail` for a known xfail), following the classification rules in .claude/agents/github-issues.md (deterministic bug, flaky, or test problem). Do this yourself; do not delegate it. Report the result next to the verdict. It never changes the verdict.
+
 ## Autonomy tiers
 - Never merge, push, change CI files, change assertions or xfail markers, close issues, or edit agent definitions. Write these as requests to the user.
 - Never commit or push yourself in this phase.
