@@ -11,6 +11,7 @@ from framework.pages.reservation_page import ReservationPage
 pytestmark = [pytest.mark.ui, pytest.mark.regression, pytest.mark.service]
 
 
+@pytest.mark.story("BOOK-1")
 @pytest.mark.issue("2")
 @pytest.mark.xfail(
     strict=True,
