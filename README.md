@@ -4,17 +4,19 @@ A proof of concept for **multi-agent quality engineering**: one **Head of Qualit
 
 The application under test is the [Restful Booker Platform](https://github.com/mwinteringham/restful-booker-platform) (RBP), a hotel booking demo with REST services and a React UI. It contains intentional bugs, which this project finds, reports and tracks.
 
-> **Status:** API and UI test frameworks are done. Four agents work: Head of Quality, Test Design, BE Automation and FE Automation (with the Playwright MCP). Two stories are covered end to end (BOOK-1 and BOOK-2) and a script checks that every story has a passing test. Next: a GitHub Issues agent, guardrails and a release gate script, then CI/CD and the live demo.
+> **Status:** API and UI test frameworks are done. Five agents work: Head of Quality, Test Design, BE Automation, FE Automation (with the Playwright MCP) and GitHub Issues. Two stories are covered end to end (BOOK-1 and BOOK-2), a script checks that every story has a passing test, guardrails protect `main`, and a release gate script computes the release verdict. Next: CI with GitHub Actions, then rehearsals and the live demo.
 
 ## Summary
 
 | | |
 |---|---|
-| Current result | **72 passed, 21 expected failures (known bugs)**, 1 race test excluded |
+| Current result | **106 passed, 21 expected failures (known bugs)**, 1 race test excluded (72 API and UI tests plus 34 unit tests of the release gate) |
 | Stories covered | BOOK-1 "As a guest, I can book a room"; BOOK-2 "As a guest, I can check which rooms are available for my dates" |
-| Agents | Head of Quality, Test Design, BE Automation, FE Automation |
+| Agents | Head of Quality, Test Design, BE Automation, FE Automation, GitHub Issues |
 | Bugs found | #1, #2, #3, #4, #7, #8 (all tracked as GitHub issues and strict xfail tests) |
-| Next | GitHub Issues agent, guardrails, release gate, CI with GitHub Actions |
+| Release verdict | `ci/release_gate.py` (script, not the LLM): four gates, verdict BLOCKED, APPROVED_WITH_KNOWN_RISKS or APPROVED; latest report in `docs/reports/` |
+| Guardrails | GitHub ruleset on `main` (pull request required, no force push) plus `.claude/settings.json` |
+| Next | CI with GitHub Actions, then rehearsals and the demo |
 
 ## What is in the repo
 
@@ -25,7 +27,9 @@ The application under test is the [Restful Booker Platform](https://github.com/m
 | Unit tests of our own scripts | pytest, no RBP needed (marker `unit`) | `tests/unit/` |
 | Test data cleanup | cleanup classes for rooms, messages and bookings | `framework/cleanup.py` |
 | Story traceability | `docs/stories.md` and a checker script | `scripts/check_story_traceability.py` |
-| Plans and reports | test condition matrices, probe records | `docs/reports/` |
+| Plans and reports | test condition matrices, probe records, release readiness reports | `docs/reports/` |
+| Release gate | gates for lint, tests, traceability and leaks, with 34 unit tests | `ci/release_gate.py`, `tests/unit/test_release_gate.py` |
+| Guardrails | permission rules (deny and ask), auto mode disabled | `.claude/settings.json` |
 | Configuration | environment variables with local defaults | `framework/config.py` |
 | Lint | ruff (markdown files excluded) | `ruff.toml` |
 | Rules for humans and agents | `CLAUDE.md` and the skill `test-writing-conventions` | repo root, `.claude/skills/` |
@@ -50,9 +54,17 @@ You -> Head of Quality: plan, wait for approval
     -> FE Automation: explore the UI with the Playwright MCP, write UI tests (own branch)
     -> Head of Quality re-runs lint, the whole suite, the traceability check and the leak checks
     -> you review the diff and commit; a draft pull request is the review point
+
+Failures and bugs:
+You -> Head of Quality -> GitHub Issues: rerun a failure three times, classify it (bug, flaky, test problem),
+       reproduce with curl, look for duplicates, draft the issue; it files or comments only with your quoted approval
+
+Release readiness:
+Head of Quality runs ci/release_gate.py, quotes the table and the exit code, explains it in plain words
+    -> writes docs/reports/release-readiness-<date>.md; a human signs off
 ```
 
-Next sub-agents: Bug Management (GitHub Issues), Docs & Reporting, CI/CD.
+Next sub-agent: CI/CD (GitHub Actions).
 
 ## Test strategy
 
@@ -66,7 +78,7 @@ Next sub-agents: Bug Management (GitHub Issues), Docs & Reporting, CI/CD.
 - **Tests must be able to fail:** new tests are checked by breaking the code under test on purpose (skip the click, empty answer, aborted request).
 - **Test the cause at the cheapest layer:** for example a malformed date is tested at the service, not through the slow proxy.
 
-Current result: **72 passed, 21 expected failures (known bugs)**.
+Current result: **106 passed, 21 expected failures (known bugs)**. One booking test is occasionally flaky on the first run after a quiet period, so a warm-up run comes first and is reported, not hidden.
 
 ## Known application bugs found
 
@@ -95,9 +107,10 @@ playwright install chromium
 
 # 3. Run the tests
 pytest -m smoke                 # fast checks
-pytest -n auto -m "not race"    # everything, in parallel
+pytest -n auto -m "not race"    # everything, in parallel (106 passed, 21 xfailed)
 ruff check . && ruff format --check .   # lint
 python scripts/check_story_traceability.py   # every story has a passing test
+python ci/release_gate.py       # release verdict (exit 0, 1 or 2); --blocking-issues N,M blocks on known bugs
 ```
 
 Against the public demo site instead of a local install:
@@ -129,18 +142,19 @@ Agents work on `quality/<topic>` branches. A human commits, opens a draft pull r
 
 ## How the agents are governed
 
-- The Head of Quality **coordinates and verifies**; it never edits code or tests. Its only write permission is for plans and reports under `docs/reports/`. Sub-agents do the work with the minimum tools they need, listed one by one (the Playwright MCP agent gets named tools only).
+- The Head of Quality **coordinates and verifies**; it never edits code or tests. Its only write permission is for plans and reports under `docs/reports/`. Sub-agents do the work with the minimum tools they need, listed one by one (the Playwright MCP agent gets named tools only; the GitHub Issues agent has no edit tools).
 - **Tiered, risk-based autonomy:** writing files on a working branch is low risk, pushing branches and opening draft pull requests is notified, and merges, CI changes and changes to assertions need a human.
-- Autonomy is introduced step by step, as the agents prove themselves. Today: agents write on `quality/*` branches, a human commits, pushes and merges.
+- **Defence in depth:** a GitHub ruleset on `main` (pull request required, no force push, no deletion, no bypass); `.claude/settings.json` denies pushes to `main`, force pushes, merges, closing or deleting issues and edits of the application under test, and asks before other pushes, issue changes and edits of agents, settings, CI and `CLAUDE.md`; auto mode is disabled; each agent has its own tool list. Known limit: command rules match the command text, which is why the ruleset exists too.
+- **Issues:** an agent never closes or edits an issue, and it files or comments only when the user's approval of the exact text is quoted in its task message. It reads the existing comments first, so it does not post twice.
+- **Release verdict:** computed by `ci/release_gate.py`, not by the LLM, so it is reproducible. The Head of Quality runs it, quotes the result and explains it; a human signs off.
 - Every agent is tested with a golden task, and its definition is fixed (with human approval) after a real failure.
-- A release verdict will be computed by a deterministic script, with a human sign-off.
 
 ## Roadmap
 
 1. Foundations (done)
 2. API and UI frameworks, including the booking service (done)
-3. Head of Quality and sub-agents (in progress: Head of Quality, Test Design, BE Automation and FE Automation done; GitHub Issues agent next)
-4. Guardrails, release gate script, CI/CD with GitHub Actions (Jenkins if time allows), reporting, final demo
+3. Head of Quality and sub-agents (done: Head of Quality, Test Design, BE Automation, FE Automation, GitHub Issues)
+4. Guardrails and release gate (done), CI/CD with GitHub Actions (next; Jenkins if time allows), rehearsals, final demo
 
 ## Credits
 
