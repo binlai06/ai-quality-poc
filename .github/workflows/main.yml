@@ -1,0 +1,91 @@
+name: Main checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: [".github/workflows/main.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RBP_REPO: mwinteringham/restful-booker-platform
+  RBP_COMMIT: efe2deb8ce02db541adbf9d3a6604caf5fbdaae6
+
+jobs:
+  full-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check out RBP at the pinned commit
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.RBP_REPO }}
+          ref: ${{ env.RBP_COMMIT }}
+          path: rbp
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Python environment
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+          .venv/bin/playwright install --with-deps chromium
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Build the RBP jars (Maven in a container)
+        working-directory: rbp
+        run: |
+          docker run --rm -v "$PWD":/app -v "$HOME/.m2":/root/.m2 -w /app \
+            maven:3.9-eclipse-temurin-26 mvn clean package -DskipTests -pl '!assets'
+
+      - name: Start RBP
+        working-directory: rbp
+        run: docker compose up --build -d
+
+      - name: Wait until RBP answers
+        run: |
+          for url in http://localhost/ http://localhost:3001/room/ \
+                     http://localhost:3006/message/ "http://localhost:3000/booking/summary?roomid=1"; do
+            ok=0
+            for i in $(seq 1 60); do
+              if curl -fsS -o /dev/null "$url"; then ok=1; break; fi
+              sleep 3
+            done
+            echo "$url ready=$ok"
+            if [ "$ok" != 1 ]; then docker compose -f rbp/docker-compose.yml ps; exit 1; fi
+          done
+
+      - name: Warm-up run (reported, not used for the verdict)
+        run: pytest -n auto -m "not race" -q || true
+
+      - name: Full suite
+        run: pytest -n auto -m "not race" -q
+
+      - name: Release gate
+        run: |
+          python ci/release_gate.py --json release-verdict.json | tee gate.txt
+          { echo '### Release gate'; echo '```'; cat gate.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Release gate with blocking issue 2 (informational)
+        continue-on-error: true
+        run: python ci/release_gate.py --blocking-issues 2
+
+      - name: RBP logs on failure
+        if: failure()
+        run: docker compose -f rbp/docker-compose.yml logs --tail 80
+
+      - name: Give the workspace back to the runner user
+        if: always()
+        run: sudo chown -R "$USER" "$GITHUB_WORKSPACE"
