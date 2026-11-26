@@ -1,10 +1,12 @@
 # AI Quality POC
 
+[![PR checks](https://github.com/binlai06/ai-quality-poc/actions/workflows/pr.yml/badge.svg)](https://github.com/binlai06/ai-quality-poc/actions/workflows/pr.yml) [![Main checks](https://github.com/binlai06/ai-quality-poc/actions/workflows/main.yml/badge.svg)](https://github.com/binlai06/ai-quality-poc/actions/workflows/main.yml)
+
 A proof of concept for **multi-agent quality engineering**: one **Head of Quality** agent coordinates specialist sub-agents to test a real web application end to end. You talk to the Head of Quality only; it plans, delegates, re-runs the checks itself and reports.
 
 The application under test is the [Restful Booker Platform](https://github.com/mwinteringham/restful-booker-platform) (RBP), a hotel booking demo with REST services and a React UI. It contains intentional bugs, which this project finds, reports and tracks.
 
-> **Status:** API and UI test frameworks are done. Five agents work: Head of Quality, Test Design, BE Automation, FE Automation (with the Playwright MCP) and GitHub Issues. Two stories are covered end to end (BOOK-1 and BOOK-2), a script checks that every story has a passing test, guardrails protect `main`, and a release gate script computes the release verdict. Next: CI with GitHub Actions, then rehearsals and the live demo.
+> **Status:** API and UI test frameworks are done. Five agents work: Head of Quality, Test Design, BE Automation, FE Automation (with the Playwright MCP) and GitHub Issues. Two stories are covered end to end (BOOK-1 and BOOK-2), a script checks that every story has a passing test, guardrails protect `main`, and a release gate script computes the release verdict. CI runs on GitHub Actions: lint and unit tests on every pull request, and on every push to `main` the full suite against RBP built in the runner, plus the release gate. Next: rehearsals and the live demo.
 
 ## Summary
 
@@ -16,7 +18,8 @@ The application under test is the [Restful Booker Platform](https://github.com/m
 | Bugs found | #1, #2, #3, #4, #7, #8 (all tracked as GitHub issues and strict xfail tests) |
 | Release verdict | `ci/release_gate.py` (script, not the LLM): four gates, verdict BLOCKED, APPROVED_WITH_KNOWN_RISKS or APPROVED; latest report in `docs/reports/` |
 | Guardrails | GitHub ruleset on `main` (pull request required, no force push) plus `.claude/settings.json` |
-| Next | CI with GitHub Actions, then rehearsals and the demo |
+| CI | GitHub Actions: `pr.yml` (lint and unit tests on every pull request), `main.yml` (RBP built in the runner at a pinned commit, warm-up run, full suite, release gate) |
+| Next | Rehearsals and the demo |
 
 ## What is in the repo
 
@@ -154,7 +157,7 @@ Agents work on `quality/<topic>` branches. A human commits, opens a draft pull r
 1. Foundations (done)
 2. API and UI frameworks, including the booking service (done)
 3. Head of Quality and sub-agents (done: Head of Quality, Test Design, BE Automation, FE Automation, GitHub Issues)
-4. Guardrails and release gate (done), CI/CD with GitHub Actions (next; Jenkins if time allows), rehearsals, final demo
+4. Guardrails and release gate (done), CI with GitHub Actions (done; Jenkins only if time allows), rehearsals, final demo
 
 ## Credits
 
