@@ -66,18 +66,40 @@ def room_cleanup(
     cleanup.delete_all()
 
 
+def _find_room_by_name(client: RoomClient, name: str) -> Room:
+    """Find a room by the name we sent: a create response can be wrong (bug D)."""
+    listing = client.list_rooms()
+    if listing.status_code != 200:
+        pytest.fail(f"room lookup failed: {listing.status_code}")
+    for item in listing.json()["rooms"]:
+        if item["roomName"] == name:
+            return Room.model_validate(item)
+    pytest.fail(f"room {name} was created but is not in the room list")
+
+
 @pytest.fixture
 def created_room(
     service_room_client: RoomClient, auth_token: str, room_cleanup: RoomCleanup
 ) -> Room:
     """A fresh room, created through the room service and deleted after the test."""
-    response = service_room_client.create_room(
-        RoomFactory.build().model_dump(), auth_token
-    )
+    payload = RoomFactory.build()
+    response = service_room_client.create_room(payload.model_dump(), auth_token)
     room_cleanup.track(response)
     if response.status_code != 201:
         pytest.fail(f"room setup failed: {response.status_code}")
-    return Room.model_validate(response.json())
+    room = Room.model_validate(response.json())
+    if room.roomName != payload.roomName:
+        # RBP bug D: the response holds another request's room. Our room exists
+        # under its own id, so find it by the name we sent.
+        import warnings
+
+        warnings.warn(
+            "RBP bug D: room response was another request's room "
+            f"(asked for {payload.roomName}, got {room.roomName})",
+            stacklevel=1,
+        )
+        room = _find_room_by_name(service_room_client, payload.roomName)
+    return room
 
 
 @pytest.fixture(scope="session")
