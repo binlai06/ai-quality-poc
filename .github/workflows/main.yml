@@ -57,7 +57,7 @@ jobs:
       - name: Wait until RBP answers
         run: |
           for url in http://localhost/ http://localhost:3001/room/ \
-                     http://localhost:3006/message/ "http://localhost:3000/booking/summary?roomid=1"\; do
+                     http://localhost:3006/message/ "http://localhost:3000/booking/summary?roomid=1"; do
             ok=0
             for i in $(seq 1 60); do
               if curl -fsS -o /dev/null "$url"; then ok=1; break; fi
