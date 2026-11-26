@@ -89,7 +89,7 @@ def created_room(
         pytest.fail(f"room setup failed: {response.status_code}")
     room = Room.model_validate(response.json())
     if room.roomName != payload.roomName:
-        # RBP bug D: the response holds another request's room. Our room exists
+        # RBP bug D (issue #26): the response holds another request's room. Our room exists
         # under its own id, so find it by the name we sent.
         import warnings
 

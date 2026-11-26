@@ -15,7 +15,7 @@ class RoomCleanup:
     """Deletes rooms a test created, found by the unique name the test sent.
 
     The name comes from the request, not the response: under concurrent creates the
-    room in a response can belong to another client (RBP bug D), so its id is not
+    room in a response can belong to another client (RBP bug D, issue #26), so its id is not
     trustworthy. Cleanup lists the rooms and deletes the ones whose name matches.
     """
 

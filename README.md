@@ -15,7 +15,7 @@ The application under test is the [Restful Booker Platform](https://github.com/m
 | Current result | **106 passed, 21 expected failures (known bugs)**, 1 race test excluded (72 API and UI tests plus 34 unit tests of the release gate) |
 | Stories covered | BOOK-1 "As a guest, I can book a room"; BOOK-2 "As a guest, I can check which rooms are available for my dates" |
 | Agents | Head of Quality, Test Design, BE Automation, FE Automation, GitHub Issues |
-| Bugs found | #1, #2, #3, #4, #7, #8 (all tracked as GitHub issues and strict xfail tests) |
+| Bugs found | #1, #2, #3, #4, #7, #8 (GitHub issues and strict xfail tests) and #26 (concurrency; its race test is excluded from the default run) |
 | Release verdict | `ci/release_gate.py` (script, not the LLM): four gates, verdict BLOCKED, APPROVED_WITH_KNOWN_RISKS or APPROVED; latest report in `docs/reports/` |
 | Guardrails | GitHub ruleset on `main` (pull request required, no force push) plus `.claude/settings.json` |
 | CI | GitHub Actions: `pr.yml` (lint and unit tests on every pull request), `main.yml` (RBP built in the runner at a pinned commit, warm-up run, full suite, release gate) |
@@ -93,6 +93,7 @@ Current result: **106 passed, 21 expected failures (known bugs)**. One booking t
 | [#4](https://github.com/binlai06/ai-quality-poc/issues/4) | The room service returns 500 instead of 404 for an unknown room id |
 | [#7](https://github.com/binlai06/ai-quality-poc/issues/7) | The availability endpoints list a room as unavailable only when a booking lies fully inside the searched range, although partial overlaps are rejected at booking time |
 | [#8](https://github.com/binlai06/ai-quality-poc/issues/8) | The booking service returns 500 instead of 400 for a missing `bookingdates` and for malformed dates; the room search takes about 31 s through the proxy |
+| [#26](https://github.com/binlai06/ai-quality-poc/issues/26) | The room service can answer a create request with another request's room when creations overlap (intermittent). Likely cause: `SELECT LAST_INSERT_ID()` on one shared connection. The tests find their room by name |
 
 ## Run it locally
 
