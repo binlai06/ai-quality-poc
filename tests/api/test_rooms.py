@@ -367,11 +367,11 @@ CONCURRENT_ROUNDS = 5
 
 @pytest.mark.regression
 @pytest.mark.race
-@pytest.mark.issue("D")
+@pytest.mark.issue("26")
 @pytest.mark.xfail(
     raises=AssertionError,
     strict=False,
-    reason="RBP bug D: concurrent creates can return another client's room. "
+    reason="RBP bug D (#26): concurrent creates can return another client's room. "
     "Measured on 2026-11-04: 54 of 60 solo runs (90%) hit the bug with 5 rounds of "
     "20 creates, so strict=True would fail about 1 run in 10.",
 )
