@@ -49,6 +49,11 @@ Tests never call `requests`; they use the clients in `framework/api/`. URLs come
 - Cleanup treats 404 as "already gone"; any other failure raises `RuntimeError`, never `AssertionError`.
 - Never assert on totals or list lengths of shared data: parallel tests add and remove rows.
   Assert on your own tagged item instead.
+- Bookings of different tests must not overlap on the same room. Use your own room (`created_room`)
+  and dates that do not collide with another booking.
+- Do not trust what a create call returns. RBP bug D (issue #26): under parallel load `POST /room` can return
+  another request's room. When the response must be yours, compare the name you sent; if it differs,
+  find your room by name in the list (see `_find_room_by_name` in `tests/conftest.py`).
 
 ## 5. Negative and boundary cases
 - Use `pytest.param(..., id="...")` with a readable explicit id. Required when values are random (xdist needs the same ids on every worker):
@@ -59,6 +64,8 @@ pytest.param({"firstname": fake.lexify("?" * 2)}, ["size must be between 3 and 1
 - A name must match what it asserts. `..._and_creates_nothing` must assert that nothing exists
   (the booking test reads the room summary and expects `bookings == []`).
 - Verify real behaviour with curl before asserting it; do not assert from reading the source.
+- Test each cause at the cheapest layer. A rule the API enforces gets an API test, not a UI test.
+  A UI test only proves that the screen shows the result.
 
 ## 6. Known bugs
 - API pattern (`tests/api/test_rooms.py`):
@@ -75,6 +82,8 @@ pytest.param({"firstname": fake.lexify("?" * 2)}, ["size must be between 3 and 1
 - UI xfails (`tests/ui/test_booking.py`): the first line after Arrange is `expect(<page-ready element>).to_be_visible()`,
   so only the real failure after it is absorbed, not a page that never loaded.
 - Never change a test silently to make it pass. Changing assertions or xfail markers needs user approval; report the bug with curl evidence instead.
+- Mutation check: after you write a test, break the behaviour on purpose (change the expected value or the input),
+  see the test fail, then restore it. A test that never failed proves nothing. Quote the failing output in your report.
 
 ## 7. Before you report
 Run all of these and quote the REAL output (never claim a pass without running it):
@@ -95,5 +104,10 @@ Run new tests alone first, then again with `-n auto`, then the whole suite.
 - Tests never use raw selectors. Page objects extend `BasePage` or are components (`ContactForm`).
 - Page objects expose actions and return `Locator`s (`thanks_heading(name)`, `error_message(text)`). They hold NO assertions.
 - Assertions live in the test with `expect(locator).to_be_visible()`. `expect` auto-retries.
-- No `time.sleep` and no `wait_for_timeout`. Wait on a visible locator instead.
+- No `time.sleep` and no `wait_for_timeout`. Wait on something that changes: a visible locator, or the response itself.
+- After an action that sends a request (search, submit), wrap it in `with page.expect_response(lambda r: ...):`
+  and wait for that response. An element that was already visible before the action proves nothing.
+- Date pickers: after filling a date field, press `Escape` so the picker closes and does not cover the next field.
+- Scope a locator to its section of the page (a form, a card, a table row) before choosing by role or text,
+  because the same label can appear in several sections.
 - Keep UI tests to critical journeys; use API tests for everything else.
